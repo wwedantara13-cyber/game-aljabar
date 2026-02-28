@@ -4,16 +4,11 @@ const actionBtn = document.getElementById('action-button');
 const bgm = document.getElementById('bgm-player');
 
 // --- 1. LOGIKA BGM & BACKGROUND ---
-if (!isMusicPlaying && bgm) {
-        bgm.volume = 0.3; // Set volume 30% (biar tidak kaget)
-        bgm.play()
-            .then(() => { 
-                isMusicPlaying = true; 
-                console.log("Musik Dungeon Aktif!");
-            })
-            .catch(error => {
-                console.log("Menunggu interaksi user untuk musik...");
-            });
+let isMusicPlaying = false;
+function playAudio() {
+    if (!isMusicPlaying && bgm) {
+        bgm.volume = 0.4;
+        bgm.play().then(() => { isMusicPlaying = true; }).catch(e => console.log("Menunggu interaksi user..."));
     }
 }
 
@@ -52,12 +47,12 @@ function init() {
 window.addEventListener('resize', init);
 init();
 
-// --- 3. JOYSTICK (MOUSE & TOUCH) ---
+// --- 3. SISTEM JOYSTICK (MOUSE & TOUCH) ---
 const stick = document.getElementById('joystick-stick');
 const base = document.getElementById('joystick-base');
 
 const handleJoyMove = (e) => {
-    playAudio(); 
+    playAudio(); // Trigger musik saat menyentuh joystick
     if(!isJoystickActive) return;
     const pos = e.touches ? e.touches[0] : e;
     const rect = base.getBoundingClientRect();
@@ -93,7 +88,7 @@ function moveToZone(zoneId) {
     }
 }
 
-// --- 5. GAME LOOP ---
+// --- 5. GAME LOOP & RENDERING ---
 function update() {
     if(!activeDungeon) {
         player.x += moveDir.x * player.speed; player.y += moveDir.y * player.speed;
@@ -107,7 +102,7 @@ function update() {
         nearDungeonId = found;
         if(nearDungeonId) {
             actionBtn.classList.add('show');
-            actionBtn.innerText = completedDungeons.includes(nearDungeonId) ? `GOA ${nearDungeonId}` : `MASUK GOA ${nearDungeonId}`;
+            actionBtn.innerText = completedDungeons.includes(nearDungeonId) ? `GOA ${nearDungeonId} (✔)` : `MASUK GOA ${nearDungeonId}`;
         } else actionBtn.classList.remove('show');
     }
     draw();
@@ -168,11 +163,11 @@ function resetPuzzle() {
 
 function validateStage1() {
     const v1 = document.querySelectorAll('#zone-v1 .item'), v2 = document.querySelectorAll('#zone-v2 .item');
-    if(v1.length + v2.length < 4) return Swal.fire('Belum Lengkap!', 'Pindahkan semua kotak!', 'warning');
+    if(v1.length + v2.length < 4) return Swal.fire('Belum Lengkap!', 'Pindahkan semua kotak ke wadah!', 'warning');
     let salah = false;
     v1.forEach(it => { if(it.dataset.v !== activeDungeon.v1) salah = true; });
     v2.forEach(it => { if(it.dataset.v !== activeDungeon.v2) salah = true; });
-    if(salah) return Swal.fire('Salah Wadah!', 'Suku belum sejenis.', 'error');
+    if(salah) return Swal.fire('Salah Wadah!', 'Kelompokkan suku yang sejenis!', 'error');
     document.getElementById('stage-1').style.display = 'none';
     document.getElementById('stage-2').style.display = 'block';
 }
@@ -182,15 +177,17 @@ function addPower(id) { const i = document.getElementById(id); i.value += "^2"; 
 function checkLock() {
     const a1 = document.getElementById('ans-1').value.trim().toLowerCase().replace('²', '^2');
     const a2 = document.getElementById('ans-2').value.trim().toLowerCase().replace('²', '^2');
-    if(a1 === activeDungeon.kunci[0].toLowerCase().replace('²', '^2') && a2 === activeDungeon.kunci[1].toLowerCase().replace('²', '^2')) {
+    const k1 = activeDungeon.kunci[0].toLowerCase().replace('²', '^2');
+    const k2 = activeDungeon.kunci[1].toLowerCase().replace('²', '^2');
+    
+    if(a1 === k1 && a2 === k2) {
         if(!completedDungeons.includes(activeDungeon.currId)) completedDungeons.push(activeDungeon.currId);
         document.getElementById('character-jail').innerText = "🤩"; 
         document.getElementById('prison-scene').classList.add('freed');
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-        Swal.fire('BERHASIL!', 'Tahanan bebas!', 'success');
+        Swal.fire('BERHASIL!', 'Goa selesai & tahanan bebas!', 'success');
     } else {
         Swal.fire('Salah!', 'Cek kembali hitunganmu.', 'error');
     }
 }
 update();
-
