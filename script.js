@@ -1,3 +1,20 @@
+// --- SISTEM MUSIK (BGM) ---
+const bgm = document.getElementById('bgm');
+let musicStarted = false;
+
+// Fungsi untuk memulai musik (hanya sekali klik)
+function startMusic() {
+    if (!musicStarted) {
+        bgm.volume = 0.4; // Set volume 40% agar tidak terlalu keras
+        bgm.play().catch(error => console.log("Menunggu interaksi pengguna..."));
+        musicStarted = true;
+    }
+}
+
+// Tambahkan pemicu musik pada interaksi apapun
+window.addEventListener('mousedown', startMusic);
+window.addEventListener('touchstart', startMusic);
+window.addEventListener('keydown', startMusic);
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const actionBtn = document.getElementById('action-button');
@@ -206,3 +223,4 @@ function checkLock() {
 }
 
 update();
+
