@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Algebra Dungeon - Tap to Move</title>
+    <title>Algebra Dungeon - Tap to Move Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="style.css">
@@ -34,24 +34,25 @@
             <div id="display-soal" class="math-text"></div>
 
             <div id="stage-1">
-                <p class="guide">1. Klik Suku &nbsp; 2. Klik Wadah</p>
+                <p class="guide">1. Klik Suku &nbsp; | &nbsp; 2. Klik Wadah Tujuan</p>
                 <div id="drag-items-container" class="inventory"></div>
                 <div class="drop-zones">
-                    <div class="zone" id="zone-v1" onclick="moveToZone('zone-v1')"><p>WADAH A</p></div>
-                    <div class="zone" id="zone-v2" onclick="moveToZone('zone-v2')"><p>WADAH B</p></div>
+                    <div class="zone" id="zone-v1" onclick="moveToZone('zone-v1')"></div>
+                    <div class="zone" id="zone-v2" onclick="moveToZone('zone-v2')"></div>
                 </div>
                 <button class="btn-action btn-cek" onclick="validateStage1()">CEK PENGELOMPOKAN</button>
             </div>
 
             <div id="stage-2" style="display: none;">
                 <div class="lock-card">
+                    <p class="guide" style="color:#00ff87">KODE COCOK! HITUNG HASILNYA:</p>
                     <div class="input-group">
                         <input type="text" id="ans-1" placeholder="Hasil 1" autocomplete="off">
                         <input type="text" id="ans-2" placeholder="Hasil 2" autocomplete="off">
                     </div>
                     <div class="helper-buttons">
-                        <button class="btn-util" onclick="addPower('ans-1')">^2 di Box 1</button>
-                        <button class="btn-util" onclick="addPower('ans-2')">^2 di Box 2</button>
+                        <button class="btn-util" onclick="addPower('ans-1')">Ketik ^2 (Box 1)</button>
+                        <button class="btn-util" onclick="addPower('ans-2')">Ketik ^2 (Box 2)</button>
                     </div>
                     <button class="btn-action btn-primary" onclick="checkLock()">BUKA GEMBOK!</button>
                 </div>
