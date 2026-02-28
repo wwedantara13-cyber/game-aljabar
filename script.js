@@ -6,15 +6,11 @@ const actionBtn = document.getElementById('action-button');
 let completedDungeons = [];
 let activeDungeon = null;
 let nearDungeonId = null;
-
-// Touch Drag Vars
-let activeTouchItem = null;
-let startX, startY;
+let selectedItem = null; // Menyimpan suku yang sedang diklik
 
 const databaseSoal = {
     1: { teks: "(4a + 7) + (2a - 3)", item: [{t:"4a",v:"a"}, {t:"7",v:"k"}, {t:"2a",v:"a"}, {t:"-3",v:"k"}], kunci: ["6a", "4"], v1: "a", v2: "k" },
     2: { teks: "(8x - 5) - (2x + 4)", item: [{t:"8x",v:"x"}, {t:"-5",v:"k"}, {t:"-2x",v:"x"}, {t:"-4",v:"k"}], kunci: ["6x", "-9"], v1: "x", v2: "k" },
-    3: { teks: "(3m + 2n) + (5m - 6n)", item: [{t:"3m",v:"m"}, {t:"2n",v:"n"}, {t:"5m",v:"m"}, {t:"-6n",v:"n"}], kunci: ["8m", "-4n"], v1: "m", v2: "n" },
     5: { teks: "(-2x² + 5x) + (7x² - 3x)", item: [{t:"-2x²",v:"x2"}, {t:"5x",v:"x"}, {t:"7x²",v:"x2"}, {t:"-3x",v:"x"}], kunci: ["5x^2", "2x"], v1: "x2", v2: "x" },
     9: { teks: "(x² + 4x) + (2x² - 4x)", item: [{t:"x²",v:"x2"}, {t:"4x",v:"x"}, {t:"2x²",v:"x2"}, {t:"-4x",v:"x"}], kunci: ["3x^2", "0"], v1: "x2", v2: "x" }
 };
@@ -35,7 +31,7 @@ function init() {
 window.addEventListener('resize', init);
 init();
 
-// JOYSTICK
+// JOYSTICK (TETAP SAMA)
 const stick = document.getElementById('joystick-stick');
 const base = document.getElementById('joystick-base');
 
@@ -58,50 +54,22 @@ window.addEventListener('touchmove', (e) => { if(isJoystickActive) e.preventDefa
 window.addEventListener('mouseup', () => { isJoystickActive = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
 window.addEventListener('touchend', () => { isJoystickActive = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
 
-// TOUCH DRAG SYSTEM (THE FIX)
-function initTouchDrag(el) {
-    el.addEventListener('touchstart', function(e) {
-        if (e.cancelable) e.preventDefault();
-        activeTouchItem = this;
-        const touch = e.touches[0];
-        const rect = activeTouchItem.getBoundingClientRect();
-        startX = touch.clientX - rect.left;
-        startY = touch.clientY - rect.top;
-        
-        activeTouchItem.style.position = 'fixed';
-        activeTouchItem.style.width = rect.width + 'px';
-        activeTouchItem.style.left = rect.left + 'px';
-        activeTouchItem.style.top = rect.top + 'px';
-        activeTouchItem.style.zIndex = '10000';
-    }, {passive: false});
+// SISTEM KLIK UNTUK PINDAH (TAP TO MOVE)
+function selectItem(el) {
+    if (selectedItem) {
+        selectedItem.classList.remove('selected');
+    }
+    selectedItem = el;
+    selectedItem.classList.add('selected');
+}
 
-    el.addEventListener('touchmove', function(e) {
-        if (!activeTouchItem) return;
-        if (e.cancelable) e.preventDefault();
-        const touch = e.touches[0];
-        activeTouchItem.style.left = (touch.clientX - startX) + 'px';
-        activeTouchItem.style.top = (touch.clientY - startY) + 'px';
-    }, {passive: false});
-
-    el.addEventListener('touchend', function(e) {
-        if (!activeTouchItem) return;
-        const touch = e.changedTouches[0];
-        activeTouchItem.style.position = 'static';
-        activeTouchItem.style.width = 'auto';
-        
-        const zones = ['zone-v1', 'zone-v2'];
-        let dropped = false;
-        zones.forEach(id => {
-            const z = document.getElementById(id);
-            const r = z.getBoundingClientRect();
-            if (touch.clientX > r.left && touch.clientX < r.right && touch.clientY > r.top && touch.clientY < r.bottom) {
-                z.appendChild(activeTouchItem);
-                dropped = true;
-            }
-        });
-        if (!dropped) document.getElementById('drag-items-container').appendChild(activeTouchItem);
-        activeTouchItem = null;
-    });
+function moveToZone(zoneId) {
+    if (selectedItem) {
+        const zone = document.getElementById(zoneId);
+        zone.appendChild(selectedItem);
+        selectedItem.classList.remove('selected');
+        selectedItem = null;
+    }
 }
 
 // GAME LOOP
@@ -153,7 +121,7 @@ function confirmEntry() {
     }
 }
 
-function exitDungeon() { activeDungeon = null; document.getElementById('puzzle-overlay').classList.add('hidden'); player.y += 80; }
+function exitDungeon() { activeDungeon = null; document.getElementById('puzzle-overlay').classList.add('hidden'); player.y += 80; selectedItem = null; }
 
 function resetPuzzle() {
     document.getElementById('prison-scene').classList.remove('freed');
@@ -167,8 +135,8 @@ function resetPuzzle() {
     container.innerHTML = "";
     activeDungeon.item.forEach((s, i) => {
         const div = document.createElement('div');
-        div.className = "item"; div.id = `it-${i}`; div.innerText = s.t; div.dataset.v = s.v;
-        initTouchDrag(div);
+        div.className = "item"; div.innerText = s.t; div.dataset.v = s.v;
+        div.onclick = function() { selectItem(this); };
         container.appendChild(div);
     });
 }
