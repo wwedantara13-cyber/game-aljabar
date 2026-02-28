@@ -3,12 +3,12 @@ const ctx = canvas.getContext('2d');
 const actionBtn = document.getElementById('action-button');
 const bgm = document.getElementById('bgm-player');
 
-// --- 1. LOGIKA AUDIO & BACKGROUND ---
+// --- 1. AUDIO & BG ---
 let isMusicPlaying = false;
 function playAudio() {
     if (!isMusicPlaying && bgm) {
         bgm.volume = 0.4;
-        bgm.play().then(() => { isMusicPlaying = true; }).catch(e => console.log("Menunggu klik user..."));
+        bgm.play().then(() => { isMusicPlaying = true; }).catch(e => console.log("Audio waiting..."));
     }
 }
 
@@ -16,9 +16,8 @@ const bgImage = new Image();
 bgImage.src = 'dungeon-bg.png'; 
 let bgLoaded = false;
 bgImage.onload = () => { bgLoaded = true; };
-bgImage.onerror = () => { bgLoaded = false; console.warn("Gambar tidak ditemukan, menggunakan warna cadangan."); };
 
-// --- 2. DATA GAME ---
+// --- 2. STATE ---
 let completedDungeons = [];
 let activeDungeon = null;
 let nearDungeonId = null;
@@ -68,12 +67,38 @@ const handleJoyMove = (e) => {
 base.addEventListener('mousedown', (e) => { isJoystickActive = true; handleJoyMove(e); });
 window.addEventListener('mousemove', (e) => { if(isJoystickActive) handleJoyMove(e); });
 window.addEventListener('mouseup', () => { isJoystickActive = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
-
 base.addEventListener('touchstart', (e) => { isJoystickActive = true; handleJoyMove(e); if(e.cancelable) e.preventDefault(); }, {passive:false});
 window.addEventListener('touchmove', (e) => { if(isJoystickActive) { handleJoyMove(e); if(e.cancelable) e.preventDefault(); } }, {passive:false});
 window.addEventListener('touchend', () => { isJoystickActive = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
 
-// --- 4. GAME LOOP ---
+// --- 4. CORE LOGIC ---
+function selectItem(e, el) {
+    e.stopPropagation(); // Mencegah trigger parent (wadah)
+    playAudio();
+    
+    // BUG FIX: Jika item diklik saat sudah di wadah, kembalikan ke Inventory
+    if(el.parentElement.classList.contains('zone')) {
+        document.getElementById('drag-items-container').appendChild(el);
+        if (selectedItem === el) {
+            el.classList.remove('selected');
+            selectedItem = null;
+        }
+        return;
+    }
+
+    if (selectedItem) selectedItem.classList.remove('selected');
+    selectedItem = el;
+    selectedItem.classList.add('selected');
+}
+
+function moveToZone(zoneId) {
+    if (selectedItem) {
+        document.getElementById(zoneId).appendChild(selectedItem);
+        selectedItem.classList.remove('selected');
+        selectedItem = null;
+    }
+}
+
 function update() {
     if(!activeDungeon) {
         player.x += moveDir.x * player.speed; player.y += moveDir.y * player.speed;
@@ -96,13 +121,9 @@ function update() {
 
 function draw() {
     ctx.clearRect(0,0, canvas.width, canvas.height);
-    if (bgLoaded) {
-        ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
-    } else {
-        ctx.fillStyle = "#1a1a1a"; ctx.fillRect(0,0, canvas.width, canvas.height);
-        ctx.strokeStyle = "#333";
-        for(let i=0; i<canvas.width; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,canvas.height); ctx.stroke(); }
-    }
+    if (bgLoaded) ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+    else { ctx.fillStyle = "#1a1a1a"; ctx.fillRect(0,0, canvas.width, canvas.height); }
+
     dungeons.forEach(d => {
         const dx = d.x * canvas.width, dy = d.y * canvas.height;
         ctx.beginPath(); ctx.arc(dx, dy, completedDungeons.includes(d.id) ? 30 : 25, 0, Math.PI*2);
@@ -112,15 +133,12 @@ function draw() {
     ctx.fillStyle = "#00ff87"; ctx.fillRect(player.x-12, player.y-12, 25, 25);
 }
 
-// --- 5. PUZZLE ---
-function selectItem(el) { playAudio(); if (selectedItem) selectedItem.classList.remove('selected'); selectedItem = el; selectedItem.classList.add('selected'); }
-function moveToZone(id) { if (selectedItem) { document.getElementById(id).appendChild(selectedItem); selectedItem.classList.remove('selected'); selectedItem = null; } }
-
 function confirmEntry() {
     if(nearDungeonId) {
         activeDungeon = JSON.parse(JSON.stringify(databaseSoal[nearDungeonId] || databaseSoal[1]));
         activeDungeon.currId = nearDungeonId;
         document.getElementById('puzzle-overlay').classList.remove('hidden');
+        document.getElementById('dungeon-info-text').innerText = `GOA ${nearDungeonId}`;
         resetPuzzle();
     }
 }
@@ -129,6 +147,7 @@ function exitDungeon() { activeDungeon = null; document.getElementById('puzzle-o
 
 function resetPuzzle() {
     document.getElementById('prison-scene').classList.remove('freed');
+    document.getElementById('character-jail').innerText = "😭";
     document.getElementById('stage-1').style.display = 'block';
     document.getElementById('stage-2').style.display = 'none';
     document.getElementById('display-soal').innerText = activeDungeon.teks;
@@ -139,35 +158,41 @@ function resetPuzzle() {
     activeDungeon.item.forEach(s => {
         const div = document.createElement('div');
         div.className = "item"; div.innerText = s.t; div.dataset.v = s.v;
-        div.onclick = function() { selectItem(this); };
+        div.onclick = (e) => selectItem(e, div);
         container.appendChild(div);
     });
 }
 
 function validateStage1() {
     const v1 = document.querySelectorAll('#zone-v1 .item'), v2 = document.querySelectorAll('#zone-v2 .item');
-    if(v1.length + v2.length < 4) return Swal.fire('Belum Lengkap!', 'Pindahkan semua kotak!', 'warning');
+    if(v1.length + v2.length < 4) return Swal.fire('Belum Lengkap!', 'Pindahkan semua kotak ke wadah!', 'warning');
     let salah = false;
     v1.forEach(it => { if(it.dataset.v !== activeDungeon.v1) salah = true; });
     v2.forEach(it => { if(it.dataset.v !== activeDungeon.v2) salah = true; });
-    if(salah) return Swal.fire('Salah Wadah!', 'Suku belum sejenis.', 'error');
+    if(salah) return Swal.fire('Salah Wadah!', 'Kelompokkan suku yang sejenis! Klik kotak di wadah untuk membatalkan.', 'error');
+    
     document.getElementById('stage-1').style.display = 'none';
     document.getElementById('stage-2').style.display = 'block';
 }
 
-function addPower(id) { document.getElementById(id).value += "^2"; }
+function backToStage1() {
+    document.getElementById('stage-1').style.display = 'block';
+    document.getElementById('stage-2').style.display = 'none';
+}
+
+function addPower(id) { document.getElementById(id).value += "^2"; document.getElementById(id).focus(); }
 
 function checkLock() {
-    const a1 = document.getElementById('ans-1').value.trim().toLowerCase();
-    const a2 = document.getElementById('ans-2').value.trim().toLowerCase();
-    if(a1 === activeDungeon.kunci[0] && a2 === activeDungeon.kunci[1]) {
+    const a1 = document.getElementById('ans-1').value.trim().toLowerCase().replace('²', '^2');
+    const a2 = document.getElementById('ans-2').value.trim().toLowerCase().replace('²', '^2');
+    if(a1 === activeDungeon.kunci[0].toLowerCase().replace('²', '^2') && a2 === activeDungeon.kunci[1].toLowerCase().replace('²', '^2')) {
         if(!completedDungeons.includes(activeDungeon.currId)) completedDungeons.push(activeDungeon.currId);
         document.getElementById('character-jail').innerText = "🤩"; 
         document.getElementById('prison-scene').classList.add('freed');
         confetti({ particleCount: 150 });
         Swal.fire('BERHASIL!', 'Tahanan bebas!', 'success');
     } else {
-        Swal.fire('Salah!', 'Cek hitunganmu.', 'error');
+        Swal.fire('Salah Hitung!', 'Cek kembali hasil penjumlahan/penguranganmu.', 'error');
     }
 }
 update();
