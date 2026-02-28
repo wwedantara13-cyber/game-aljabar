@@ -2,14 +2,14 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const actionBtn = document.getElementById('action-button');
 
-const bgImage = new Image();
-bgImage.src = 'dungeon-bg.png'; // Pastikan file ini ada
-let bgLoaded = false;
-bgImage.onload = () => bgLoaded = true;
-
+// State
 let completedDungeons = [];
 let activeDungeon = null;
 let nearDungeonId = null;
+
+// Touch Drag Vars
+let activeTouchItem = null;
+let startX, startY;
 
 const databaseSoal = {
     1: { teks: "(4a + 7) + (2a - 3)", item: [{t:"4a",v:"a"}, {t:"7",v:"k"}, {t:"2a",v:"a"}, {t:"-3",v:"k"}], kunci: ["6a", "4"], v1: "a", v2: "k" },
@@ -25,8 +25,8 @@ const dungeons = [
     {id: 7, x: 0.25, y: 0.78}, {id: 8, x: 0.50, y: 0.85}, {id: 9, x: 0.75, y: 0.78}
 ];
 
-let player = { x: 0, y: 0, speed: 5 };
-let moveDir = { x: 0, y: 0 }, isDragging = false;
+let player = { x: 0, y: 0, speed: 6 };
+let moveDir = { x: 0, y: 0 }, isJoystickActive = false;
 
 function init() {
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
@@ -35,11 +35,12 @@ function init() {
 window.addEventListener('resize', init);
 init();
 
-// Joystick Logic
+// JOYSTICK
 const stick = document.getElementById('joystick-stick');
 const base = document.getElementById('joystick-base');
-const handleMove = (e) => {
-    if(!isDragging) return;
+
+const handleJoyMove = (e) => {
+    if(!isJoystickActive) return;
     const pos = e.touches ? e.touches[0] : e;
     const rect = base.getBoundingClientRect();
     const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
@@ -49,17 +50,64 @@ const handleMove = (e) => {
     stick.style.left = `calc(50% + ${dx}px)`; stick.style.top = `calc(50% + ${dy}px)`;
     moveDir = { x: dx/max, y: dy/max };
 };
-base.addEventListener('mousedown', () => isDragging = true);
-window.addEventListener('mousemove', handleMove);
-window.addEventListener('mouseup', () => { isDragging = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
-base.addEventListener('touchstart', (e) => { e.preventDefault(); isDragging = true; }, {passive:false});
-window.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e); }, {passive:false});
-window.addEventListener('touchend', () => { isDragging = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
 
+base.addEventListener('mousedown', () => isJoystickActive = true);
+base.addEventListener('touchstart', (e) => { e.preventDefault(); isJoystickActive = true; }, {passive:false});
+window.addEventListener('mousemove', handleJoyMove);
+window.addEventListener('touchmove', (e) => { if(isJoystickActive) e.preventDefault(); handleJoyMove(e); }, {passive:false});
+window.addEventListener('mouseup', () => { isJoystickActive = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
+window.addEventListener('touchend', () => { isJoystickActive = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
+
+// TOUCH DRAG SYSTEM (THE FIX)
+function initTouchDrag(el) {
+    el.addEventListener('touchstart', function(e) {
+        if (e.cancelable) e.preventDefault();
+        activeTouchItem = this;
+        const touch = e.touches[0];
+        const rect = activeTouchItem.getBoundingClientRect();
+        startX = touch.clientX - rect.left;
+        startY = touch.clientY - rect.top;
+        
+        activeTouchItem.style.position = 'fixed';
+        activeTouchItem.style.width = rect.width + 'px';
+        activeTouchItem.style.left = rect.left + 'px';
+        activeTouchItem.style.top = rect.top + 'px';
+        activeTouchItem.style.zIndex = '10000';
+    }, {passive: false});
+
+    el.addEventListener('touchmove', function(e) {
+        if (!activeTouchItem) return;
+        if (e.cancelable) e.preventDefault();
+        const touch = e.touches[0];
+        activeTouchItem.style.left = (touch.clientX - startX) + 'px';
+        activeTouchItem.style.top = (touch.clientY - startY) + 'px';
+    }, {passive: false});
+
+    el.addEventListener('touchend', function(e) {
+        if (!activeTouchItem) return;
+        const touch = e.changedTouches[0];
+        activeTouchItem.style.position = 'static';
+        activeTouchItem.style.width = 'auto';
+        
+        const zones = ['zone-v1', 'zone-v2'];
+        let dropped = false;
+        zones.forEach(id => {
+            const z = document.getElementById(id);
+            const r = z.getBoundingClientRect();
+            if (touch.clientX > r.left && touch.clientX < r.right && touch.clientY > r.top && touch.clientY < r.bottom) {
+                z.appendChild(activeTouchItem);
+                dropped = true;
+            }
+        });
+        if (!dropped) document.getElementById('drag-items-container').appendChild(activeTouchItem);
+        activeTouchItem = null;
+    });
+}
+
+// GAME LOOP
 function update() {
     if(!activeDungeon) {
-        player.x += moveDir.x * player.speed;
-        player.y += moveDir.y * player.speed;
+        player.x += moveDir.x * player.speed; player.y += moveDir.y * player.speed;
         player.x = Math.max(20, Math.min(canvas.width-20, player.x));
         player.y = Math.max(20, Math.min(canvas.height-20, player.y));
         let found = null;
@@ -70,13 +118,8 @@ function update() {
         nearDungeonId = found;
         if(nearDungeonId) {
             actionBtn.classList.add('show');
-            if(completedDungeons.includes(nearDungeonId)) {
-                actionBtn.innerText = `GOA ${nearDungeonId} (SELESAI)`;
-                actionBtn.style.background = "#eab308";
-            } else {
-                actionBtn.innerText = `MASUK GOA ${nearDungeonId} (E)`;
-                actionBtn.style.background = "#00ff87";
-            }
+            actionBtn.innerText = completedDungeons.includes(nearDungeonId) ? `GOA ${nearDungeonId} (SELESAI)` : `MASUK GOA ${nearDungeonId} (E)`;
+            actionBtn.style.background = completedDungeons.includes(nearDungeonId) ? "#eab308" : "#00ff87";
         } else actionBtn.classList.remove('show');
     }
     draw();
@@ -85,7 +128,6 @@ function update() {
 
 function draw() {
     ctx.clearRect(0,0, canvas.width, canvas.height);
-    if(bgLoaded) ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
     dungeons.forEach(d => {
         const dx = d.x * canvas.width, dy = d.y * canvas.height;
         if(completedDungeons.includes(d.id)) {
@@ -93,80 +135,71 @@ function draw() {
             ctx.fillStyle = "rgba(234, 179, 8, 0.4)"; ctx.fill();
             ctx.strokeStyle = "#eab308"; ctx.lineWidth = 3; ctx.stroke();
             ctx.fillStyle = "#eab308"; ctx.font = "bold 20px Arial"; ctx.fillText("✔", dx-8, dy+8);
+        } else {
+            ctx.beginPath(); ctx.arc(dx, dy, 25, 0, Math.PI*2);
+            ctx.strokeStyle = "#444"; ctx.stroke();
         }
     });
-    ctx.fillStyle = "#00ff87"; ctx.shadowBlur = 15; ctx.shadowColor = "#00ff87";
-    ctx.fillRect(player.x-12, player.y-12, 25, 25); ctx.shadowBlur = 0;
+    ctx.fillStyle = "#00ff87"; ctx.fillRect(player.x-12, player.y-12, 25, 25);
 }
 
 function confirmEntry() {
     if(nearDungeonId) {
-        activeDungeon = databaseSoal[nearDungeonId] || databaseSoal[1];
-        activeDungeon.id = nearDungeonId;
+        activeDungeon = JSON.parse(JSON.stringify(databaseSoal[nearDungeonId] || databaseSoal[1]));
+        activeDungeon.currId = nearDungeonId;
         document.getElementById('dungeon-info-text').innerText = `📍 GOA ${nearDungeonId}`;
         document.getElementById('puzzle-overlay').classList.remove('hidden');
         resetPuzzle();
     }
 }
-window.addEventListener('keydown', (e) => { if(e.key.toLowerCase()==='e') confirmEntry(); });
 
 function exitDungeon() { activeDungeon = null; document.getElementById('puzzle-overlay').classList.add('hidden'); player.y += 80; }
 
 function resetPuzzle() {
     document.getElementById('prison-scene').classList.remove('freed');
     document.getElementById('character-jail').innerText = "😭";
-    document.querySelector('.puzzle-container').style.borderColor = "var(--primary)";
     document.getElementById('stage-1').style.display = 'block';
     document.getElementById('stage-2').style.display = 'none';
     document.getElementById('display-soal').innerText = activeDungeon.teks;
-    document.getElementById('ans-1').value = ""; document.getElementById('ans-2').value = "";
-    document.getElementById('zone-v1').innerHTML = `<p>Wadah ${activeDungeon.v1.toUpperCase()}</p>`;
-    document.getElementById('zone-v2').innerHTML = `<p>Wadah ${activeDungeon.v2.toUpperCase()}</p>`;
-    const container = document.getElementById('drag-items-container'); container.innerHTML = "";
+    document.getElementById('zone-v1').innerHTML = `<p>WADAH ${activeDungeon.v1.toUpperCase()}</p>`;
+    document.getElementById('zone-v2').innerHTML = `<p>WADAH ${activeDungeon.v2.toUpperCase()}</p>`;
+    const container = document.getElementById('drag-items-container');
+    container.innerHTML = "";
     activeDungeon.item.forEach((s, i) => {
-        const div = document.createElement('div'); div.className = "item"; div.draggable = true; div.id = `it-${i}`;
-        div.innerText = s.t; div.dataset.v = s.v;
-        div.addEventListener('dragstart', e => e.dataTransfer.setData("text", e.target.id));
+        const div = document.createElement('div');
+        div.className = "item"; div.id = `it-${i}`; div.innerText = s.t; div.dataset.v = s.v;
+        initTouchDrag(div);
         container.appendChild(div);
     });
 }
 
-function allowDrop(ev) { ev.preventDefault(); }
-function drop(ev) {
-    ev.preventDefault(); const dataId = ev.dataTransfer.getData("text");
-    const el = document.getElementById(dataId); if(ev.target.classList.contains('zone')) ev.target.appendChild(el);
-}
-
 function validateStage1() {
     const v1 = document.querySelectorAll('#zone-v1 .item'), v2 = document.querySelectorAll('#zone-v2 .item');
-    if(v1.length + v2.length < 4) return Swal.fire('Belum Lengkap!', 'Pindahkan semua!', 'warning');
+    if(v1.length + v2.length < 4) return Swal.fire('Belum Lengkap!', 'Pindahkan semua kotak!', 'warning');
     let salah = false;
     v1.forEach(it => { if(it.dataset.v !== activeDungeon.v1) salah = true; });
     v2.forEach(it => { if(it.dataset.v !== activeDungeon.v2) salah = true; });
     if(salah) return Swal.fire('Salah Wadah!', 'Suku belum sejenis.', 'error');
     document.getElementById('stage-1').style.display = 'none';
     document.getElementById('stage-2').style.display = 'block';
-    setTimeout(() => document.getElementById('ans-1').focus(), 150);
 }
 
-function addPower(tid) { const inp = document.getElementById(tid); inp.value += "^2"; inp.focus(); }
+function addPower(id) { const i = document.getElementById(id); i.value += "^2"; i.focus(); }
 
 function checkLock() {
-    let a1 = document.getElementById('ans-1').value.trim().toLowerCase().replace('²', '^2');
-    let a2 = document.getElementById('ans-2').value.trim().toLowerCase().replace('²', '^2');
+    const a1 = document.getElementById('ans-1').value.trim().toLowerCase().replace('²', '^2');
+    const a2 = document.getElementById('ans-2').value.trim().toLowerCase().replace('²', '^2');
     const k1 = activeDungeon.kunci[0].toLowerCase().replace('²', '^2');
     const k2 = activeDungeon.kunci[1].toLowerCase().replace('²', '^2');
     if(a1 === k1 && a2 === k2) {
-        if(!completedDungeons.includes(activeDungeon.id)) completedDungeons.push(activeDungeon.id);
-        document.querySelector('.puzzle-container').style.borderColor = "var(--success)";
+        if(!completedDungeons.includes(activeDungeon.currId)) completedDungeons.push(activeDungeon.currId);
         document.getElementById('character-jail').innerText = "🤩"; 
         document.getElementById('prison-scene').classList.add('freed');
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-        Swal.fire('BERHASIL!', 'Tahanan bebas!', 'success');
+        Swal.fire('BERHASIL!', 'Goa selesai & tahanan bebas!', 'success');
     } else {
         document.getElementById('character-jail').innerText = "😰";
-        setTimeout(() => { if(!document.getElementById('prison-scene').classList.contains('freed')) document.getElementById('character-jail').innerText = "😭"; }, 1000);
-        Swal.fire('Salah!', 'Cek hitunganmu.', 'error');
+        Swal.fire('Salah!', 'Cek kembali hitunganmu.', 'error');
     }
 }
 update();
