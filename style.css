@@ -45,11 +45,9 @@ input { width: 46%; padding: 15px; background: #fff; color: #000; border: 4px so
 .btn-cek { background: var(--success); color: #000; }
 .btn-primary { background: var(--primary); color: #000; }
 .btn-exit { background: var(--danger); color: #fff; padding: 8px 15px; border-radius: 8px; border: none; font-weight: bold; }
-.header-puzzle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; color: var(--primary); font-weight: bold; }
 
 #prison-scene { width: 80px; height: 80px; background: #000; border: 2px solid #444; border-radius: 10px; margin: 0 auto 10px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
 .bar { width: 4px; height: 100%; background: #666; margin: 0 4px; }
 #bars { position: absolute; display: flex; width: 100%; justify-content: center; transition: 1s; }
 .freed #bars { transform: translateY(-110px); }
 #character-jail { font-size: 40px; }
-.btn-util { background: #1e293b; color: var(--primary); border: 1px solid var(--primary); padding: 8px; border-radius: 5px; margin: 5px; cursor: pointer; }
