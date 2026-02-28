@@ -1,5 +1,5 @@
 :root { --primary: #00f2fe; --success: #00ff87; --danger: #ff4b2b; --gold: #eab308; }
-* { box-sizing: border-box; touch-action: none; -webkit-user-select: none; user-select: none; }
+* { box-sizing: border-box; touch-action: manipulation; }
 body { margin: 0; background: #000; font-family: 'Arial', sans-serif; overflow: hidden; }
 
 #gameCanvas { display: block; width: 100vw; height: 100vh; }
@@ -15,26 +15,27 @@ body { margin: 0; background: #000; font-family: 'Arial', sans-serif; overflow: 
 
 #puzzle-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.98); z-index: 9999; display: flex; justify-content: center; padding: 15px; overflow-y: auto;
+    background: rgba(0, 0, 0, 0.98); z-index: 9999; display: flex; justify-content: center; padding: 10px; overflow-y: auto;
 }
 .hidden { display: none !important; }
 
 .puzzle-container {
-    width: 100%; max-width: 600px; background: #161b22; padding: 20px;
+    width: 100%; max-width: 550px; background: #161b22; padding: 20px;
     border-radius: 20px; border: 4px solid var(--primary); align-self: flex-start; text-align: center;
 }
 
 .math-text { font-size: 2.2rem; color: #fff; background: #000; padding: 20px; border-radius: 12px; margin: 15px 0; border: 3px solid var(--primary); font-weight: 900; }
 
-.inventory { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; min-height: 50px; }
+.inventory { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; min-height: 50px; padding: 10px; border: 1px solid #333; border-radius: 10px; }
 .item { 
     padding: 12px 18px; background: #0d1117; color: #fff; border: 2px solid var(--primary); 
-    border-radius: 8px; font-weight: bold; font-size: 1.3rem; z-index: 1000;
-    cursor: pointer; touch-action: none;
+    border-radius: 8px; font-weight: bold; font-size: 1.3rem; cursor: pointer;
 }
+.item.selected { background: var(--primary); color: #000; border-color: #fff; transform: scale(1.1); }
 
 .drop-zones { display: flex; gap: 10px; margin-bottom: 20px; }
-.zone { flex: 1; min-height: 120px; border: 3px dashed #444; border-radius: 15px; background: #000; padding: 10px; display: flex; flex-wrap: wrap; gap: 5px; align-content: flex-start; }
+.zone { flex: 1; min-height: 120px; border: 3px dashed #444; border-radius: 15px; background: #000; padding: 10px; display: flex; flex-wrap: wrap; gap: 5px; cursor: pointer; }
+.zone:active { border-color: var(--success); }
 .zone p { width: 100%; color: var(--primary); font-weight: bold; margin: 0; font-size: 0.8rem; pointer-events: none; }
 
 .input-group { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; }
@@ -46,9 +47,9 @@ input { width: 46%; padding: 15px; background: #fff; color: #000; border: 4px so
 .btn-exit { background: var(--danger); color: #fff; padding: 8px 15px; border-radius: 8px; border: none; }
 .header-puzzle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; color: var(--primary); font-weight: bold; }
 
-#prison-scene { width: 100px; height: 100px; background: #000; border: 3px solid #444; margin: 0 auto 15px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
-.bar { width: 5px; height: 100%; background: #666; margin: 0 5px; }
+#prison-scene { width: 80px; height: 80px; background: #000; border: 2px solid #444; border-radius: 10px; margin: 0 auto 10px; position: relative; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+.bar { width: 4px; height: 100%; background: #666; margin: 0 4px; }
 #bars { position: absolute; display: flex; width: 100%; justify-content: center; transition: 1s; }
 .freed #bars { transform: translateY(-110px); }
-#character-jail { font-size: 50px; }
+#character-jail { font-size: 40px; }
 .btn-util { background: #1e293b; color: var(--primary); border: 1px solid var(--primary); padding: 8px; border-radius: 5px; margin: 5px; cursor: pointer; }
