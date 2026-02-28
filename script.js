@@ -2,15 +2,22 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const actionBtn = document.getElementById('action-button');
 
-// State
+// --- LOGIKA BACKGROUND ---
+const bgImage = new Image();
+bgImage.src = 'dungeon-bg.png'; 
+let bgLoaded = false;
+bgImage.onload = () => { bgLoaded = true; };
+
+// --- STATE GAME ---
 let completedDungeons = [];
 let activeDungeon = null;
 let nearDungeonId = null;
-let selectedItem = null; // Menyimpan suku yang sedang diklik
+let selectedItem = null;
 
 const databaseSoal = {
     1: { teks: "(4a + 7) + (2a - 3)", item: [{t:"4a",v:"a"}, {t:"7",v:"k"}, {t:"2a",v:"a"}, {t:"-3",v:"k"}], kunci: ["6a", "4"], v1: "a", v2: "k" },
     2: { teks: "(8x - 5) - (2x + 4)", item: [{t:"8x",v:"x"}, {t:"-5",v:"k"}, {t:"-2x",v:"x"}, {t:"-4",v:"k"}], kunci: ["6x", "-9"], v1: "x", v2: "k" },
+    3: { teks: "(3m + 2n) + (5m - 6n)", item: [{t:"3m",v:"m"}, {t:"2n",v:"n"}, {t:"5m",v:"m"}, {t:"-6n",v:"n"}], kunci: ["8m", "-4n"], v1: "m", v2: "n" },
     5: { teks: "(-2x² + 5x) + (7x² - 3x)", item: [{t:"-2x²",v:"x2"}, {t:"5x",v:"x"}, {t:"7x²",v:"x2"}, {t:"-3x",v:"x"}], kunci: ["5x^2", "2x"], v1: "x2", v2: "x" },
     9: { teks: "(x² + 4x) + (2x² - 4x)", item: [{t:"x²",v:"x2"}, {t:"4x",v:"x"}, {t:"2x²",v:"x2"}, {t:"-4x",v:"x"}], kunci: ["3x^2", "0"], v1: "x2", v2: "x" }
 };
@@ -31,7 +38,7 @@ function init() {
 window.addEventListener('resize', init);
 init();
 
-// JOYSTICK (TETAP SAMA)
+// --- JOYSTICK ---
 const stick = document.getElementById('joystick-stick');
 const base = document.getElementById('joystick-base');
 
@@ -47,32 +54,26 @@ const handleJoyMove = (e) => {
     moveDir = { x: dx/max, y: dy/max };
 };
 
-base.addEventListener('mousedown', () => isJoystickActive = true);
 base.addEventListener('touchstart', (e) => { e.preventDefault(); isJoystickActive = true; }, {passive:false});
-window.addEventListener('mousemove', handleJoyMove);
-window.addEventListener('touchmove', (e) => { if(isJoystickActive) e.preventDefault(); handleJoyMove(e); }, {passive:false});
-window.addEventListener('mouseup', () => { isJoystickActive = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
+window.addEventListener('touchmove', (e) => { if(isJoystickActive) { e.preventDefault(); handleJoyMove(e); } }, {passive:false});
 window.addEventListener('touchend', () => { isJoystickActive = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
 
-// SISTEM KLIK UNTUK PINDAH (TAP TO MOVE)
+// --- SISTEM KLIK PINDAH ---
 function selectItem(el) {
-    if (selectedItem) {
-        selectedItem.classList.remove('selected');
-    }
+    if (selectedItem) selectedItem.classList.remove('selected');
     selectedItem = el;
     selectedItem.classList.add('selected');
 }
 
 function moveToZone(zoneId) {
     if (selectedItem) {
-        const zone = document.getElementById(zoneId);
-        zone.appendChild(selectedItem);
+        document.getElementById(zoneId).appendChild(selectedItem);
         selectedItem.classList.remove('selected');
         selectedItem = null;
     }
 }
 
-// GAME LOOP
+// --- GAME LOOP ---
 function update() {
     if(!activeDungeon) {
         player.x += moveDir.x * player.speed; player.y += moveDir.y * player.speed;
@@ -96,6 +97,11 @@ function update() {
 
 function draw() {
     ctx.clearRect(0,0, canvas.width, canvas.height);
+    if (bgLoaded) {
+        ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+    } else {
+        ctx.fillStyle = "#111"; ctx.fillRect(0,0, canvas.width, canvas.height);
+    }
     dungeons.forEach(d => {
         const dx = d.x * canvas.width, dy = d.y * canvas.height;
         if(completedDungeons.includes(d.id)) {
@@ -105,10 +111,12 @@ function draw() {
             ctx.fillStyle = "#eab308"; ctx.font = "bold 20px Arial"; ctx.fillText("✔", dx-8, dy+8);
         } else {
             ctx.beginPath(); ctx.arc(dx, dy, 25, 0, Math.PI*2);
-            ctx.strokeStyle = "#444"; ctx.stroke();
+            ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.stroke();
         }
     });
-    ctx.fillStyle = "#00ff87"; ctx.fillRect(player.x-12, player.y-12, 25, 25);
+    ctx.fillStyle = "#00ff87"; ctx.shadowBlur = 10; ctx.shadowColor = "#00ff87";
+    ctx.fillRect(player.x-12, player.y-12, 25, 25);
+    ctx.shadowBlur = 0;
 }
 
 function confirmEntry() {
@@ -139,6 +147,7 @@ function resetPuzzle() {
         div.onclick = function() { selectItem(this); };
         container.appendChild(div);
     });
+    document.getElementById('ans-1').value = ""; document.getElementById('ans-2').value = "";
 }
 
 function validateStage1() {
