@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Algebra Dungeon RPG</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="world-container">
+        <canvas id="gameCanvas"></canvas>
+        <button id="action-button" onclick="confirmEntry()">MASUK GOA (E)</button>
+        <div id="joystick-wrapper">
+            <div id="joystick-base"><div id="joystick-stick"></div></div>
+        </div>
+    </div>
+
+    <div id="puzzle-overlay" class="hidden">
+        <div class="puzzle-container">
+            <div class="header-puzzle">
+                <button class="btn-exit" onclick="exitDungeon()">⬅ KELUAR</button>
+                <span id="dungeon-info-text"></span>
+            </div>
+            
+            <div id="game-content">
+                <div id="prison-scene">
+                    <div id="bars">
+                        <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                    </div>
+                    <div id="character-jail">😭</div>
+                </div>
+
+                <div id="display-soal" class="math-text"></div>
+
+                <div id="stage-1">
+                    <p class="guide">Pisahkan suku sejenis ke wadahnya:</p>
+                    <div id="drag-items-container" class="inventory"></div>
+                    <div class="drop-zones">
+                        <div class="zone" id="zone-v1" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                        <div class="zone" id="zone-v2" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                    </div>
+                    <button class="btn-action btn-cek" onclick="validateStage1()">CEK PENGELOMPOKAN</button>
+                </div>
+
+                <div id="stage-2" style="display: none;">
+                    <div class="lock-card">
+                        <p class="guide">SELESAIKAN OPERASINYA:</p>
+                        <div class="input-group">
+                            <input type="text" id="ans-1" placeholder="Hasil 1" autocomplete="off">
+                            <input type="text" id="ans-2" placeholder="Hasil 2" autocomplete="off">
+                        </div>
+                        <div class="helper-buttons">
+                            <button class="btn-util" onclick="addPower('ans-1')">Box 1 ^2</button>
+                            <button class="btn-util" onclick="addPower('ans-2')">Box 2 ^2</button>
+                        </div>
+                        <button class="btn-action btn-primary" onclick="checkLock()">BUKA GEMBOK!</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
