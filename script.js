@@ -1,3 +1,12 @@
+// Tambahkan ini di bagian variabel atas
+const clickSfx = new Audio('https://www.soundjay.com/buttons/sounds/button-16.mp3');
+
+function selectItem(el) {
+    clickSfx.play(); // Putar suara klik
+    if (selectedItem) selectedItem.classList.remove('selected');
+    selectedItem = el;
+    selectedItem.classList.add('selected');
+}
 // --- SISTEM MUSIK (BGM) ---
 const bgm = document.getElementById('bgm');
 let musicStarted = false;
@@ -223,4 +232,5 @@ function checkLock() {
 }
 
 update();
+
 
