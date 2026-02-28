@@ -2,17 +2,18 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const actionBtn = document.getElementById('action-button');
 
-// --- LOGIKA BACKGROUND ---
+// --- 1. LOGIKA BACKGROUND ---
 const bgImage = new Image();
 bgImage.src = 'dungeon-bg.png'; 
 let bgLoaded = false;
 bgImage.onload = () => { bgLoaded = true; };
+bgImage.onerror = () => { console.error("Gambar dungeon-bg.png tidak ditemukan!"); };
 
-// --- STATE GAME ---
+// --- 2. STATE GAME ---
 let completedDungeons = [];
 let activeDungeon = null;
 let nearDungeonId = null;
-let selectedItem = null;
+let selectedItem = null; // Menyimpan suku aljabar yang sedang diklik
 
 const databaseSoal = {
     1: { teks: "(4a + 7) + (2a - 3)", item: [{t:"4a",v:"a"}, {t:"7",v:"k"}, {t:"2a",v:"a"}, {t:"-3",v:"k"}], kunci: ["6a", "4"], v1: "a", v2: "k" },
@@ -38,7 +39,7 @@ function init() {
 window.addEventListener('resize', init);
 init();
 
-// --- JOYSTICK ---
+// --- 3. SISTEM JOYSTICK (MOUSE & TOUCH) ---
 const stick = document.getElementById('joystick-stick');
 const base = document.getElementById('joystick-base');
 
@@ -54,11 +55,17 @@ const handleJoyMove = (e) => {
     moveDir = { x: dx/max, y: dy/max };
 };
 
-base.addEventListener('touchstart', (e) => { e.preventDefault(); isJoystickActive = true; }, {passive:false});
-window.addEventListener('touchmove', (e) => { if(isJoystickActive) { e.preventDefault(); handleJoyMove(e); } }, {passive:false});
+// Event Mouse
+base.addEventListener('mousedown', (e) => { isJoystickActive = true; handleJoyMove(e); });
+window.addEventListener('mousemove', (e) => { if(isJoystickActive) handleJoyMove(e); });
+window.addEventListener('mouseup', () => { isJoystickActive = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
+
+// Event Touch (HP)
+base.addEventListener('touchstart', (e) => { isJoystickActive = true; handleJoyMove(e); if(e.cancelable) e.preventDefault(); }, {passive:false});
+window.addEventListener('touchmove', (e) => { if(isJoystickActive) { handleJoyMove(e); if(e.cancelable) e.preventDefault(); } }, {passive:false});
 window.addEventListener('touchend', () => { isJoystickActive = false; moveDir = {x:0,y:0}; stick.style.left="50%"; stick.style.top="50%"; });
 
-// --- SISTEM KLIK PINDAH ---
+// --- 4. SISTEM KLIK PINDAH (TAP TO MOVE) ---
 function selectItem(el) {
     if (selectedItem) selectedItem.classList.remove('selected');
     selectedItem = el;
@@ -73,7 +80,7 @@ function moveToZone(zoneId) {
     }
 }
 
-// --- GAME LOOP ---
+// --- 5. GAME LOOP & RENDERING ---
 function update() {
     if(!activeDungeon) {
         player.x += moveDir.x * player.speed; player.y += moveDir.y * player.speed;
@@ -97,11 +104,15 @@ function update() {
 
 function draw() {
     ctx.clearRect(0,0, canvas.width, canvas.height);
+    
+    // Background
     if (bgLoaded) {
         ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
     } else {
         ctx.fillStyle = "#111"; ctx.fillRect(0,0, canvas.width, canvas.height);
     }
+
+    // Dungeon Nodes
     dungeons.forEach(d => {
         const dx = d.x * canvas.width, dy = d.y * canvas.height;
         if(completedDungeons.includes(d.id)) {
@@ -114,11 +125,15 @@ function draw() {
             ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.stroke();
         }
     });
-    ctx.fillStyle = "#00ff87"; ctx.shadowBlur = 10; ctx.shadowColor = "#00ff87";
+
+    // Player
+    ctx.fillStyle = "#00ff87"; 
+    ctx.shadowBlur = 10; ctx.shadowColor = "#00ff87";
     ctx.fillRect(player.x-12, player.y-12, 25, 25);
     ctx.shadowBlur = 0;
 }
 
+// --- 6. LOGIKA PUZZLE ---
 function confirmEntry() {
     if(nearDungeonId) {
         activeDungeon = JSON.parse(JSON.stringify(databaseSoal[nearDungeonId] || databaseSoal[1]));
@@ -129,7 +144,12 @@ function confirmEntry() {
     }
 }
 
-function exitDungeon() { activeDungeon = null; document.getElementById('puzzle-overlay').classList.add('hidden'); player.y += 80; selectedItem = null; }
+function exitDungeon() { 
+    activeDungeon = null; 
+    document.getElementById('puzzle-overlay').classList.add('hidden'); 
+    player.y += 80; 
+    selectedItem = null; 
+}
 
 function resetPuzzle() {
     document.getElementById('prison-scene').classList.remove('freed');
@@ -137,8 +157,10 @@ function resetPuzzle() {
     document.getElementById('stage-1').style.display = 'block';
     document.getElementById('stage-2').style.display = 'none';
     document.getElementById('display-soal').innerText = activeDungeon.teks;
+    
     document.getElementById('zone-v1').innerHTML = `<p>WADAH ${activeDungeon.v1.toUpperCase()}</p>`;
     document.getElementById('zone-v2').innerHTML = `<p>WADAH ${activeDungeon.v2.toUpperCase()}</p>`;
+    
     const container = document.getElementById('drag-items-container');
     container.innerHTML = "";
     activeDungeon.item.forEach((s, i) => {
@@ -147,16 +169,18 @@ function resetPuzzle() {
         div.onclick = function() { selectItem(this); };
         container.appendChild(div);
     });
-    document.getElementById('ans-1').value = ""; document.getElementById('ans-2').value = "";
+    document.getElementById('ans-1').value = ""; 
+    document.getElementById('ans-2').value = "";
 }
 
 function validateStage1() {
     const v1 = document.querySelectorAll('#zone-v1 .item'), v2 = document.querySelectorAll('#zone-v2 .item');
-    if(v1.length + v2.length < 4) return Swal.fire('Belum Lengkap!', 'Pindahkan semua kotak!', 'warning');
+    if(v1.length + v2.length < 4) return Swal.fire('Belum Lengkap!', 'Pindahkan semua kotak ke wadah!', 'warning');
     let salah = false;
     v1.forEach(it => { if(it.dataset.v !== activeDungeon.v1) salah = true; });
     v2.forEach(it => { if(it.dataset.v !== activeDungeon.v2) salah = true; });
-    if(salah) return Swal.fire('Salah Wadah!', 'Suku belum sejenis.', 'error');
+    if(salah) return Swal.fire('Salah Wadah!', 'Kelompokkan suku yang sejenis!', 'error');
+    
     document.getElementById('stage-1').style.display = 'none';
     document.getElementById('stage-2').style.display = 'block';
 }
@@ -168,15 +192,17 @@ function checkLock() {
     const a2 = document.getElementById('ans-2').value.trim().toLowerCase().replace('²', '^2');
     const k1 = activeDungeon.kunci[0].toLowerCase().replace('²', '^2');
     const k2 = activeDungeon.kunci[1].toLowerCase().replace('²', '^2');
+    
     if(a1 === k1 && a2 === k2) {
         if(!completedDungeons.includes(activeDungeon.currId)) completedDungeons.push(activeDungeon.currId);
         document.getElementById('character-jail').innerText = "🤩"; 
         document.getElementById('prison-scene').classList.add('freed');
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-        Swal.fire('BERHASIL!', 'Goa selesai & tahanan bebas!', 'success');
+        Swal.fire('BERHASIL!', 'Tahanan bebas!', 'success');
     } else {
         document.getElementById('character-jail').innerText = "😰";
         Swal.fire('Salah!', 'Cek kembali hitunganmu.', 'error');
     }
 }
+
 update();
