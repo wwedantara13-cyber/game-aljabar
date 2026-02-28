@@ -4,11 +4,16 @@ const actionBtn = document.getElementById('action-button');
 const bgm = document.getElementById('bgm-player');
 
 // --- 1. LOGIKA BGM & BACKGROUND ---
-let isMusicPlaying = false;
-function playAudio() {
-    if (!isMusicPlaying) {
-        bgm.volume = 0.4;
-        bgm.play().then(() => { isMusicPlaying = true; }).catch(e => console.log("Menunggu klik..."));
+if (!isMusicPlaying && bgm) {
+        bgm.volume = 0.3; // Set volume 30% (biar tidak kaget)
+        bgm.play()
+            .then(() => { 
+                isMusicPlaying = true; 
+                console.log("Musik Dungeon Aktif!");
+            })
+            .catch(error => {
+                console.log("Menunggu interaksi user untuk musik...");
+            });
     }
 }
 
@@ -188,3 +193,4 @@ function checkLock() {
     }
 }
 update();
+
