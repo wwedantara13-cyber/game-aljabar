@@ -17,18 +17,22 @@ bgImage.src = 'dungeon-bg.png';
 let bgLoaded = false;
 bgImage.onload = () => { bgLoaded = true; };
 
-// --- 2. STATE ---
+// --- 2. STATE & DATABASE 9 SOAL BERBEDA ---
 let completedDungeons = [];
 let activeDungeon = null;
 let nearDungeonId = null;
 let selectedItem = null;
 
 const databaseSoal = {
-    1: { teks: "(4a + 7) + (2a - 3)", item: [{t:"4a",v:"a"}, {t:"7",v:"k"}, {t:"2a",v:"a"}, {t:"-3",v:"k"}], kunci: ["6a", "4"], v1: "a", v2: "k" },
-    2: { teks: "(8x - 5) - (2x + 4)", item: [{t:"8x",v:"x"}, {t:"-5",v:"k"}, {t:"-2x",v:"x"}, {t:"-4",v:"k"}], kunci: ["6x", "-9"], v1: "x", v2: "k" },
-    3: { teks: "(3m + 2n) + (5m - 6n)", item: [{t:"3m",v:"m"}, {t:"2n",v:"n"}, {t:"5m",v:"m"}, {t:"-6n",v:"n"}], kunci: ["8m", "-4n"], v1: "m", v2: "n" },
-    5: { teks: "(-2x² + 5x) + (7x² - 3x)", item: [{t:"-2x²",v:"x2"}, {t:"5x",v:"x"}, {t:"7x²",v:"x2"}, {t:"-3x",v:"x"}], kunci: ["5x^2", "2x"], v1: "x2", v2: "x" },
-    9: { teks: "(x² + 4x) + (2x² - 4x)", item: [{t:"x²",v:"x2"}, {t:"4x",v:"x"}, {t:"2x²",v:"x2"}, {t:"-4x",v:"x"}], kunci: ["3x^2", "0"], v1: "x2", v2: "x" }
+    1: { teks: "(5a + 8) + (3a - 2)", item: [{t:"5a",v:"a"}, {t:"8",v:"k"}, {t:"3a",v:"a"}, {t:"-2",v:"k"}], kunci: ["8a", "6"], v1: "a", v2: "k" },
+    2: { teks: "(9x - 4) - (3x + 2)", item: [{t:"9x",v:"x"}, {t:"-4",v:"k"}, {t:"-3x",v:"x"}, {t:"-2",v:"k"}], kunci: ["6x", "-6"], v1: "x", v2: "k" },
+    3: { teks: "(2m + 5n) + (4m - 2n)", item: [{t:"2m",v:"m"}, {t:"5n",v:"n"}, {t:"4m",v:"m"}, {t:"-2n",v:"n"}], kunci: ["6m", "3n"], v1: "m", v2: "n" },
+    4: { teks: "(7p - 3q) - (2p + 4q)", item: [{t:"7p",v:"p"}, {t:"-3q",v:"q"}, {t:"-2p",v:"p"}, {t:"-4q",v:"q"}], kunci: ["5p", "-7q"], v1: "p", v2: "q" },
+    5: { teks: "(-3x² + 6x) + (5x² - 2x)", item: [{t:"-3x²",v:"x2"}, {t:"6x",v:"x"}, {t:"5x²",v:"x2"}, {t:"-2x",v:"x"}], kunci: ["2x^2", "4x"], v1: "x2", v2: "x" },
+    6: { teks: "(10y + 12) - (4y - 5)", item: [{t:"10y",v:"y"}, {t:"12",v:"k"}, {t:"-4y",v:"y"}, {t:"5",v:"k"}], kunci: ["6y", "17"], v1: "y", v2: "k" },
+    7: { teks: "(4k² - 7k) - (k² - 3k)", item: [{t:"4k²",v:"k2"}, {t:"-7k",v:"k"}, {t:"-k²",v:"k2"}, {t:"3k",v:"k"}], kunci: ["3k^2", "-4k"], v1: "k2", v2: "k" },
+    8: { teks: "(6ab + 2) + (3ab - 8)", item: [{t:"6ab",v:"ab"}, {t:"2",v:"k"}, {t:"3ab",v:"ab"}, {t:"-8",v:"k"}], kunci: ["9ab", "-6"], v1: "ab", v2: "k" },
+    9: { teks: "(x² + 4x) + (2x² - 9x)", item: [{t:"x²",v:"x2"}, {t:"4x",v:"x"}, {t:"2x²",v:"x2"}, {t:"-9x",v:"x"}], kunci: ["3x^2", "-5x"], v1: "x2", v2: "x" }
 };
 
 const dungeons = [
@@ -73,10 +77,8 @@ window.addEventListener('touchend', () => { isJoystickActive = false; moveDir = 
 
 // --- 4. CORE LOGIC ---
 function selectItem(e, el) {
-    e.stopPropagation(); // Mencegah trigger parent (wadah)
+    e.stopPropagation();
     playAudio();
-    
-    // BUG FIX: Jika item diklik saat sudah di wadah, kembalikan ke Inventory
     if(el.parentElement.classList.contains('zone')) {
         document.getElementById('drag-items-container').appendChild(el);
         if (selectedItem === el) {
@@ -85,7 +87,6 @@ function selectItem(e, el) {
         }
         return;
     }
-
     if (selectedItem) selectedItem.classList.remove('selected');
     selectedItem = el;
     selectedItem.classList.add('selected');
@@ -170,7 +171,6 @@ function validateStage1() {
     v1.forEach(it => { if(it.dataset.v !== activeDungeon.v1) salah = true; });
     v2.forEach(it => { if(it.dataset.v !== activeDungeon.v2) salah = true; });
     if(salah) return Swal.fire('Salah Wadah!', 'Kelompokkan suku yang sejenis! Klik kotak di wadah untuk membatalkan.', 'error');
-    
     document.getElementById('stage-1').style.display = 'none';
     document.getElementById('stage-2').style.display = 'block';
 }
